@@ -1,4 +1,4 @@
-console.log("FIAP Hack Tools iniciado!");
+console.log("FIAP Tools iniciado!");
 function delay(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
