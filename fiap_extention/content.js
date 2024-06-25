@@ -2,6 +2,13 @@ console.log("FIAP Tools iniciado!");
 function delay(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
+
+function range(start, end) {
+  return Array(end - start)
+    .fill(start)
+    .map((x, idx) => x + idx);
+}
+
 async function createProgressBar() {
   // Create overlay
   const overlay = document.createElement("div");
@@ -120,75 +127,77 @@ if (location.search.includes("id=") && location.search.includes("sesskey=")) {
           }
           var questions = data[0].data.questions;
           const totalItems = questions.length;
-          for (let index = 0; index < totalItems; index++) {
-            const question = questions[index];
-            let question_id = question.id;
-            let answer = false;
+          await Promise.all(
+            range(0, totalItems).map(async (index) => {
+              const question = questions[index];
+              let question_id = question.id;
+              let answer = false;
 
-            question.answers.map((a) => {
-              if (a.is_right) {
-                answer = a.id;
-              }
-            });
-
-            if (answer) {
-              await fetch("https://fiap.webart3.com/question/create", {
-                headers: {
-                  accept: "*/*",
-                  "accept-language":
-                    "pt-BR,pt;q=0.9,en-CA;q=0.8,en;q=0.7,ru-RU;q=0.6,ru;q=0.5,en-US;q=0.4,es;q=0.3",
-                },
-
-                body: JSON.stringify({
-                  question: question_id,
-                  answer: answer,
-                }),
-
-                method: "POST",
+              question.answers.map((a) => {
+                if (a.is_right) {
+                  answer = a.id;
+                }
               });
-            } else {
-              await fetch("https://fiap.webart3.com/question/get", {
-                headers: {
-                  accept: "*/*",
-                  "accept-language":
-                    "pt-BR,pt;q=0.9,en-CA;q=0.8,en;q=0.7,ru-RU;q=0.6,ru;q=0.5,en-US;q=0.4,es;q=0.3",
-                },
 
-                body: JSON.stringify({
-                  id: question_id,
-                }),
+              if (answer) {
+                await fetch("https://fiap.webart3.com/question/create", {
+                  headers: {
+                    accept: "*/*",
+                    "accept-language":
+                      "pt-BR,pt;q=0.9,en-CA;q=0.8,en;q=0.7,ru-RU;q=0.6,ru;q=0.5,en-US;q=0.4,es;q=0.3",
+                  },
 
-                method: "POST",
-              })
-                .then((response) => response.json())
-                .then(async (data) => {
-                  if (data.answer) {
-                    await delay(4000);
-                    let payload = (dom_target) => {
-                      if (!dom_target) {
-                        return;
-                      }
+                  body: JSON.stringify({
+                    question: question_id,
+                    answer: answer,
+                  }),
 
-                      let resposta_certa = dom_target.querySelector(
-                        `div[data-question-id='${question_id}'] label[data-answer-id='${data.answer}']`
-                      );
+                  method: "POST",
+                });
+              } else {
+                await fetch("https://fiap.webart3.com/question/get", {
+                  headers: {
+                    accept: "*/*",
+                    "accept-language":
+                      "pt-BR,pt;q=0.9,en-CA;q=0.8,en;q=0.7,ru-RU;q=0.6,ru;q=0.5,en-US;q=0.4,es;q=0.3",
+                  },
 
-                      console.log(resposta_certa);
+                  body: JSON.stringify({
+                    id: question_id,
+                  }),
 
-                      if (resposta_certa) {
-                        resposta_certa.classList.add(
-                          "on-fast-test-question-right"
+                  method: "POST",
+                })
+                  .then((response) => response.json())
+                  .then(async (data) => {
+                    if (data.answer) {
+                      await delay(4000);
+                      let payload = (dom_target) => {
+                        if (!dom_target) {
+                          return;
+                        }
+
+                        let resposta_certa = dom_target.querySelector(
+                          `div[data-question-id='${question_id}'] label[data-answer-id='${data.answer}']`
                         );
+
+                        console.log(resposta_certa);
+
+                        if (resposta_certa) {
+                          resposta_certa.classList.add(
+                            "on-fast-test-question-right"
+                          );
+                        }
+                      };
+
+                      payload(document);
+
+                      let iframes = document.querySelectorAll("iframe");
+                      if (iframes.length > 0) {
+                        Array.from(iframes).map((iframe) => {
+                          payload(iframe.contentDocument);
+                        });
                       }
-                    };
-
-                    payload(document);
-
-                    let iframes = document.querySelectorAll("iframe");
-                    if (iframes.length > 0) {
-                      Array.from(iframes).map((iframe) => {
-                        payload(iframe.contentDocument);
-                      });
                     }
                   }
                 });
@@ -228,6 +237,7 @@ if (location.search.includes("id=") && location.search.includes("sesskey=")) {
               setFunctionOnFinishButton(iframe.contentDocument);
             });
           }
+        
         });
     };
     fetchFastTestAnswers();
